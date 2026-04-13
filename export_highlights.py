@@ -2,22 +2,17 @@ import json
 import os
 import subprocess
 
-def main():
-    base_dir = '/mnt/d/ClaudeWorkspace/Code/badminton_audio_mvp'
-    rallies_path = os.path.join(base_dir, 'high_value_rallies.json')
-    video_path = os.path.join(base_dir, 'clip_3min.mp4')
-    output_dir = os.path.join(base_dir, 'highlights_3min')
-    
+def export_highlights(video_path, rallies_path, output_dir):
     os.makedirs(output_dir, exist_ok=True)
     
-    print("Loading scored rallies...")
+    print(f"Loading scored rallies from {rallies_path}...")
     with open(rallies_path, 'r') as f:
         rallies = json.load(f)
         
     # Only keep rallies with score >= 80
     valid_rallies = [r for r in rallies if r.get('highlight_score', 0) >= 80]
     
-    print(f"Found {len(valid_rallies)} highlight candidates within the video duration.")
+    print(f"Found {len(valid_rallies)} highlight candidates.")
     
     # Ensure they are sorted chronologically
     valid_rallies.sort(key=lambda x: x['start_time'])
@@ -43,7 +38,9 @@ def main():
         start = max(0, rally['start_time'] - pad_front)
         end = rally['end_time'] + pad_back
         
-        out_file = os.path.join(output_dir, f"highlight_{i+1}_score_{rally['highlight_score']:.1f}.mp4")
+        # Get original video filename
+        vid_name = os.path.splitext(os.path.basename(video_path))[0]
+        out_file = os.path.join(output_dir, f"{vid_name}_highlight_{i+1}_score_{rally['highlight_score']:.1f}.mp4")
         
         print(f"Cutting highlight #{i+1} ({start}s - {end}s)...")
         # Use simple ffmpeg stream copy to be fast
@@ -58,4 +55,6 @@ def main():
         print(f"Saved: {out_file}")
 
 if __name__ == "__main__":
-    main()
+    import sys
+    if len(sys.argv) == 4:
+        export_highlights(sys.argv[1], sys.argv[2], sys.argv[3])

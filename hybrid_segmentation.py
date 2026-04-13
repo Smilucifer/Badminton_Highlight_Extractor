@@ -35,15 +35,16 @@ def count_intense_frames(velocities, start_t, end_t, intense_threshold):
     if not v: return 0
     return sum(1 for val in v if val > intense_threshold) / len(v)
 
-def main():
-    base_dir = '/mnt/d/ClaudeWorkspace/Code/badminton_audio_mvp'
-    audio_path = os.path.join(base_dir, 'track_3min.wav')
-    vision_path = os.path.join(base_dir, 'vision_metrics.json')
-    
+def segment_video(audio_path, vision_path, output_rallies_path):
+    print(f"Segmenting based on {audio_path} and {vision_path}")
     velocities = compute_vision_velocities(load_vision_data(vision_path))
     all_vels = [v[1] for v in velocities]
     
     # 低剧烈度，只要不散步就行，毕竟有单打的时候活动范围没那么大
+    if not all_vels:
+        print("No velocities found in vision data!")
+        return
+        
     intense_threshold = np.percentile(all_vels, 50) 
     print(f"Intense Threshold: {intense_threshold:.1f}")
 
@@ -51,7 +52,8 @@ def main():
     hop_length = 512
     energy = np.array([sum(abs(y[i:i+hop_length]**2)) for i in range(0, len(y), hop_length)])
     times = librosa.frames_to_time(np.arange(len(energy)), sr=sr, hop_length=hop_length)
-    energy = energy / np.max(energy)
+    if np.max(energy) > 0:
+        energy = energy / np.max(energy)
     
     peaks, _ = find_peaks(energy, height=0.015, distance=int(sr * 0.2 / hop_length))
     audio_hits = times[peaks]
@@ -101,8 +103,10 @@ def main():
         print(f"Rally #{i+1}: {r['start_time']:05.2f}s to {r['end_time']:05.2f}s | Dur: {r['duration']:04.2f}s")
         output_rallies.append(r)
         
-    with open(os.path.join(base_dir, 'high_value_rallies.json'), 'w') as f:
+    with open(output_rallies_path, 'w') as f:
         json.dump(output_rallies, f, indent=4)
 
 if __name__ == "__main__":
-    main()
+    import sys
+    if len(sys.argv) == 4:
+        segment_video(sys.argv[1], sys.argv[2], sys.argv[3])

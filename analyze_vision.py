@@ -13,6 +13,9 @@ def analyze_video_movement(video_path, output_json):
     
     # Video properties
     fps = cap.get(cv2.CAP_PROP_FPS)
+    if fps == 0:
+        fps = 30 # default fallback
+        
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     print(f"FPS: {fps}, Total frames: {total_frames}")
     
@@ -20,7 +23,7 @@ def analyze_video_movement(video_path, output_json):
     
     frame_count = 0
     # Process every Nth frame to speed up MVP (e.g. process 5 frames per second)
-    skip_frames = int(fps / 5) 
+    skip_frames = max(1, int(fps / 5)) 
     
     while cap.isOpened():
         ret, frame = cap.read()
@@ -45,7 +48,6 @@ def analyze_video_movement(video_path, output_json):
         persons_data = []
         if len(results) > 0 and results[0].boxes is not None and results[0].keypoints is not None:
             boxes = results[0].boxes.xyxy.cpu().numpy()
-            keypoints = results[0].keypoints.xy.cpu().numpy() # [N, 17, 2]
             confs = results[0].boxes.conf.cpu().numpy()
             
             for i, box in enumerate(boxes):
@@ -74,17 +76,11 @@ def analyze_video_movement(video_path, output_json):
     cap.release()
     print("Video processing complete.")
     
-    # Process metrics to find "still" moments and "active" moments
-    # In badminton, before serving, players are relatively still.
-    print("Analyzing movement patterns...")
-    
-    # We will look for moments where player bounding box centers don't move much over 1-2 seconds
-    
     with open(output_json, 'w', encoding='utf-8') as f:
         json.dump(frame_metrics, f, indent=4)
     print(f"Metrics saved to {output_json}")
 
 if __name__ == "__main__":
-    video_file = "/mnt/d/ClaudeWorkspace/Code/badminton_audio_mvp/clip_3min.mp4"
-    output_file = "/mnt/d/ClaudeWorkspace/Code/badminton_audio_mvp/vision_metrics.json"
-    analyze_video_movement(video_file, output_file)
+    import sys
+    if len(sys.argv) == 3:
+        analyze_video_movement(sys.argv[1], sys.argv[2])
