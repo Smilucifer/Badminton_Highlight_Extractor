@@ -15,17 +15,46 @@ A hybrid audio-visual tool that automatically segments badminton match videos an
 
 You can now process videos dynamically through command-line arguments without modifying the scripts. 中间过程文件（音频、JSON）全部使用临时文件夹流转，不产生垃圾文件。
 
-**1. Process bulk videos / 批量处理指定目录下的所有视频**
+### Windows quick start / Windows 快速开始
+1. Install FFmpeg and make sure `ffmpeg` works in a normal Windows terminal. 先安装 FFmpeg，并确认在 Windows 终端中直接输入 `ffmpeg` 可以运行。
+2. Place `yolov8n-pose.pt` in the project root. 将 `yolov8n-pose.pt` 放在项目根目录下。
+3. Install Python dependencies from `requirements.txt`. 根据 `requirements.txt` 安装 Python 依赖。
+4. Run the project with a video directory path. 使用视频目录路径运行主程序。
+5. If you want to override defaults, pass a JSON config file with nested sections like `vision`, `audio`, `fusion`, and `export`. 如果你想覆盖默认参数，可以传入一个 JSON 配置文件，按 `vision`、`audio`、`fusion`、`export` 分组。
+
 ```bash
-# Provide the directory containing your video files (.mp4, .mkv, .avi, .mov)
-# 提供包含你要处理视频的绝对或相对目录
-python main.py "/path/to/your/videos"
+python main.py "D:\path\to\your\videos" --config "D:\path\to\config.json"
 ```
 
-Enjoy your highlights grouped perfectly under `/path/to/your/videos/highlights/` ! 
-所有切割好的集锦会自动输出到输入目录下的 `highlights` 文件夹中！ 
+Example config / 配置示例：
+
+```json
+{
+  "vision": {
+    "use_half_precision": false,
+    "num_workers": 2
+  },
+  "export": {
+    "min_highlight_score": 60
+  }
+}
+```
+
+The tool scans the directory for supported videos (`.mp4`, `.mkv`, `.avi`, `.mov`) and writes clipped highlights to `D:\path\to\your\videos\highlights\`.
+程序会扫描目录中的支持格式视频（`.mp4`、`.mkv`、`.avi`、`.mov`），并将裁剪后的高光输出到 `D:\path\to\your\videos\highlights\`。
+
+### Boundary refinement trust signals / 边界精修可信信号
+Version 2.1 treats motion as the primary anchor signal and audio as a supporting validation signal. A boundary is only accepted as signal-matched when the local evidence is strong enough; otherwise the system falls back to conservative default behavior. This keeps refinement metrics useful for trustworthiness instead of just showing arbitrary boundary movement.
+在 v2.1 中，运动信号仍然是主要锚点信号，而音频信号负责辅助验证。只有局部证据足够强时，边界才会被视为 signal-matched；否则系统会回退到保守默认裁法。这样输出的 refinement 指标才能更可信，而不只是记录边界有没有随便移动。
+
+Important metrics / 关键指标：
+- `signal_refined_count`
+- `start_fallback_rate`
+- `end_fallback_rate`
+- `full_fallback_rate`
+- `unchanged_count`
 
 ## Requirements / 运行环境
-See `requirements.txt` for Python libraries. 
-This project uses FFmpeg and heavily relies on CUDA for YOLO inference. 
+See `requirements.txt` for Python libraries.
+This project uses FFmpeg and heavily relies on CUDA for YOLO inference.
 需提前系统安装 FFmpeg（用于音视频无损流拷贝与抽音），并且强烈依赖 CUDA 以加速 YOLO 推理。
