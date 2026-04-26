@@ -10,6 +10,10 @@ __pycache__/
 # Environment Variables
 .env
 
+# Local Backups & Worktrees
+.merge-backup/
+.worktrees/
+
 # Media & Processed Data
 *.mp4
 *.MP4

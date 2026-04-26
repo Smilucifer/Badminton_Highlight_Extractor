@@ -20,22 +20,65 @@ You can now process videos dynamically through command-line arguments without mo
 2. Place `yolov8n-pose.pt` in the project root. 将 `yolov8n-pose.pt` 放在项目根目录下。
 3. Install Python dependencies from `requirements.txt`. 根据 `requirements.txt` 安装 Python 依赖。
 4. Run the project with a video directory path. 使用视频目录路径运行主程序。
-5. If you want to override defaults, pass a JSON config file with nested sections like `vision`, `audio`, `fusion`, and `export`. 如果你想覆盖默认参数，可以传入一个 JSON 配置文件，按 `vision`、`audio`、`fusion`、`export` 分组。
+5. If you want to override defaults, pass a JSON config file with nested sections like `vision`, `audio`, `fusion`, `export`, and `boundary`. 如果你想覆盖默认参数，可以传入一个 JSON 配置文件，按 `vision`、`audio`、`fusion`、`export`、`boundary` 分组。
 
 ```bash
 python main.py "D:\path\to\your\videos" --config "D:\path\to\config.json"
 ```
+
+Recommended workflow / 推荐工作流：
+- Start from the bundled full config file `my_config.json`. 从项目自带的完整配置 `my_config.json` 开始改最省心。
+- For a balanced Windows + CUDA setup, the current recommended values keep `vision.use_half_precision=true`, `vision.num_workers=4`, `fusion.rally_gap_threshold=2.4`, `export.min_highlight_score=80`, and `export.max_workers=4`. 对于 Windows + CUDA 的平衡模式，目前推荐保留 `vision.use_half_precision=true`、`vision.num_workers=4`、`fusion.rally_gap_threshold=2.4`、`export.min_highlight_score=80`、`export.max_workers=4`。
+- See `CONFIG_GUIDE.zh-CN.md` for a full Chinese explanation of every parameter. 所有参数的中文说明见 `CONFIG_GUIDE.zh-CN.md`。
 
 Example config / 配置示例：
 
 ```json
 {
   "vision": {
-    "use_half_precision": false,
-    "num_workers": 2
+    "model_path": "yolov8n-pose.pt",
+    "batch_size": 16,
+    "num_workers": 4,
+    "sample_fps": 5.0,
+    "confidence_threshold": 0.5,
+    "use_half_precision": true
+  },
+  "audio": {
+    "sample_rate": null,
+    "hop_length": 512,
+    "peak_height": 0.015,
+    "min_peak_distance_sec": 0.2
+  },
+  "fusion": {
+    "motion_percentile": 50.0,
+    "hit_window_before": 0.2,
+    "hit_window_after": 1.2,
+    "min_intense_ratio": 0.05,
+    "rally_gap_threshold": 2.4,
+    "min_rally_duration": 1.0
   },
   "export": {
-    "min_highlight_score": 60
+    "min_highlight_score": 80,
+    "pad_front": 1.5,
+    "pad_back": 2.0,
+    "max_workers": 4
+  },
+  "boundary": {
+    "start_search_window": 2.0,
+    "end_search_window": 2.0,
+    "max_front_adjustment": 2.5,
+    "max_back_adjustment": 2.5,
+    "max_start_trim": 0.5,
+    "max_end_trim": 0.5,
+    "low_motion_percentile": 25.0,
+    "pre_hit_guard": 0.15,
+    "post_hit_guard": 0.2,
+    "fallback_pad_front": 1.5,
+    "fallback_pad_back": 2.0,
+    "state_window": 0.35,
+    "motion_rise_delta": 15.0,
+    "motion_fall_delta": 15.0,
+    "signal_match_min_score": 2.0
   }
 }
 ```
